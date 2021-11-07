@@ -8,49 +8,38 @@ mod gen_plan;
 mod server;
 mod world;
 
-fn main() {
-    let data = r#"
-        {
-            "spawn_x": 0,
-            "spawn_y": 0,
-            "rooms": [
-                {
-                    "x": 0,
-                    "y": 0
-                },
-                {
-                    "x": 1,
-                    "y": 0,
-                    "description": "a room",
-                    "monsters": 5
-                },
-                {
-                    "x": 2,
-                    "y": 0,
-                    "description": "another room",
-                    "monsters": [
-                        {
-                            "descrition": "a monster",
-                            "hp": 50,
-                            "dp": 5
-                        },
-                        {
-                            "descrition": "another monster",
-                            "hp": 50,
-                            "dp": 5
-                        },
-                        {
-                            "hp": 50,
-                            "dp": 5
-                        }
-                    ]
-                }
-            ]
-        }
-    "#;
+use std::env;
+use std::error;
+use std::fs;
 
-    let plan: gen_plan::WorldPlan = serde_json::from_str(data).unwrap();
+static ERROR_ARGUMENT_PARSE: &str = "Could not parse argument";
+static NO_INPUT_FILE_ERROR: &str = "No input file provided";
+static FILE_READ_ERROR: &str = "Could not read file";
+static GEN_PARSE_ERROR: &str = "Error while parsing generation plan";
+
+fn main() -> Result<(), Box<dyn error::Error>> {
+    let args: Vec<String> = env::args().collect();
+
+    let mut filename = String::new();
+    let mut data = String::new();
+
+    for arg in args.iter().skip(1) {
+        if arg.starts_with("gen=") {
+            filename = arg[4..arg.len()].to_string();
+            data = fs::read_to_string(&filename).expect(&format!("{} {}", FILE_READ_ERROR, &filename));
+        } else {
+            panic!("{} {}", ERROR_ARGUMENT_PARSE, arg);
+        }
+    }
+
+    if filename == "" {
+        panic!("{}", NO_INPUT_FILE_ERROR);
+    }
+
+    let plan: gen_plan::WorldPlan = serde_json::from_str(data.as_str()).expect(GEN_PARSE_ERROR);
     let world = world::World::generate(plan);
 
     server::launch(world);
+
+    Ok(())
 }
