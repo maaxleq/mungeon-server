@@ -29,5 +29,5 @@ pub struct RoomPlan {
 pub struct WorldPlan {
     pub rooms: Vec<RoomPlan>,
     pub spawn_x: usize,
-    pub spawn_y: usize
+    pub spawn_y: usize,
 }

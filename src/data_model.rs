@@ -72,7 +72,7 @@ pub enum Direction {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct ReqDirection {
-    pub direction: Direction
+    pub direction: Direction,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

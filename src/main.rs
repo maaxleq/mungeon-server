@@ -1,11 +1,12 @@
 #![feature(decl_macro)]
 
-#[macro_use] extern crate rocket;
+#[macro_use]
+extern crate rocket;
 
-mod gen_plan;
-mod world;
 mod data_model;
+mod gen_plan;
 mod server;
+mod world;
 
 fn main() {
     let data = r#"
