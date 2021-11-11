@@ -3,9 +3,11 @@ use crate::world;
 
 use rocket_contrib::json::Json;
 
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time;
 
-pub type SharedWorld = Mutex<world::World>;
+pub type SharedWorld = Arc<Mutex<world::World>>;
 
 #[post("/connect")]
 fn connect(
@@ -56,9 +58,28 @@ fn attack(
     Ok(Json(world.attack(guid, guid_dest)?))
 }
 
+fn spawn_afk_thread(world: SharedWorld) {
+    let check_rate = time::Duration::from_secs(5);
+
+    thread::spawn(move || {
+        let mut last_tick = time::Instant::now();
+
+        loop {
+            if last_tick.elapsed() >= check_rate {
+                world.lock().unwrap().disconnect_afk_players().unwrap();
+                last_tick = time::Instant::now();
+            }
+        }
+    });
+}
+
 pub fn launch(world: world::World) {
+    let world = Arc::new(Mutex::new(world));
+
+    spawn_afk_thread(Arc::clone(&world));
+
     rocket::ignite()
-        .manage(Mutex::new(world))
+        .manage(world)
         .mount(
             "/",
             routes![connect, look_room, movement, look_entity, attack],

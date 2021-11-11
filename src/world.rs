@@ -3,6 +3,8 @@ use crate::gen_plan;
 
 use std::collections::HashMap;
 
+use std::time;
+
 mod guid {
     pub fn random_guid() -> String {
         uuid::Uuid::new_v4().to_simple().to_string()
@@ -22,6 +24,7 @@ pub struct Entity {
     pub hp: u32,
     pub dp: u32,
     pub location: Coords,
+    pub afk_since: time::Instant,
 }
 
 impl Entity {
@@ -34,6 +37,7 @@ impl Entity {
             hp: hp,
             dp: fastrand::u32(10..30),
             location: location,
+            afk_since: time::Instant::now(),
         }
     }
 
@@ -51,6 +55,7 @@ impl Entity {
             hp: defined_monster_plan.hp,
             dp: defined_monster_plan.dp,
             location: location,
+            afk_since: time::Instant::now(),
         }
     }
 
@@ -199,6 +204,7 @@ pub struct World {
     pub rooms: HashMap<Coords, Room>,
     pub entities: HashMap<String, Entity>,
     pub spawn: Coords,
+    pub afk_threshold: time::Duration,
 }
 
 impl World {
@@ -207,6 +213,7 @@ impl World {
             rooms: HashMap::new(),
             entities: HashMap::new(),
             spawn: Coords { x: 0, y: 0 },
+            afk_threshold: time::Duration::from_secs(60),
         }
     }
 
@@ -243,6 +250,30 @@ impl World {
         }
     }
 
+    pub fn disconnect_afk_players(&mut self) -> Result<(), data_model::WorldError> {
+        let mut entities_to_remove: Vec<(Coords, String)> = Vec::new();
+
+        for entity in self.entities.iter_mut() {
+            match entity.1.r#type {
+                EntityType::Monster(_) => (),
+                EntityType::Player => {
+                    let guid = entity.0.clone();
+                    let location = entity.1.location.clone();
+                    if time::Instant::now() - entity.1.afk_since > self.afk_threshold {
+                        entities_to_remove.push((location, guid));
+                    }
+                }
+            }
+        }
+
+        for (location, guid) in entities_to_remove.iter() {
+            self.get_room(location.clone())?.remove_guid(guid.clone())?;
+            self.entities.remove(guid);
+        }
+
+        Ok(())
+    }
+
     pub fn connect(&mut self) -> Result<data_model::Status, data_model::WorldError> {
         let coords = self.spawn.clone();
         let room = self.get_room(coords.clone())?;
@@ -255,6 +286,7 @@ impl World {
             max_hp: max_hp,
             location: coords.clone(),
             r#type: EntityType::Player,
+            afk_since: time::Instant::now(),
         };
 
         room.add_guid(guid.clone())?;
@@ -273,6 +305,12 @@ impl World {
                 paths: self.get_directions_for_coordinates(coords.clone()),
             },
         })
+    }
+
+    fn player_acted(&mut self, guid: String) -> Result<(), data_model::WorldError> {
+        self.get_entity(guid)?.afk_since = time::Instant::now();
+
+        Ok(())
     }
 
     pub fn look(&mut self, guid: String) -> Result<data_model::Room, data_model::WorldError> {
@@ -317,6 +355,8 @@ impl World {
         guid: String,
         direction: data_model::Direction,
     ) -> Result<data_model::Room, data_model::WorldError> {
+        self.player_acted(guid.clone())?;
+
         let coords = self.get_entity(guid.clone())?.location.clone();
         let mut new_coords = coords.clone();
         match direction {
@@ -385,6 +425,8 @@ impl World {
         attacker_guid: String,
         defender_guid: String,
     ) -> Result<data_model::Fight, data_model::WorldError> {
+        self.player_acted(attacker_guid.clone())?;
+
         let mut attacker = self.get_entity(attacker_guid.clone())?.clone();
         let mut defender = self.get_entity(defender_guid.clone())?.clone();
 
