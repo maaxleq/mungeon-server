@@ -2,23 +2,42 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
 pub enum WorldError {
-    Dead,
+    Disappeared,
     Wall,
     DiffRoom,
+    EntityNotFound(String),
     Other(String),
 }
 
 impl WorldError {
     pub fn to_json_string(&self) -> String {
         match self {
-            WorldError::Dead => String::from(r#"{ "type": "MORT", "message": "You are dead" }"#),
-            WorldError::Wall => {
-                String::from(r#"{ "type": "MUR", "message": "You bumped into a wall" }"#)
-            }
-            WorldError::DiffRoom => {
-                String::from(r#"{ "type": "DIFFSALLE", "message": "Room mismatch" }"#)
+            WorldError::Disappeared => String::from(
+                r#"{ "type": "MORT", "message": "You were either killed or disconnected. In any case you disappeared ¯\\_(ツ)_/¯" }"#,
+            ),
+            WorldError::Wall => String::from(
+                r#"{ "type": "MUR", "message": "Ouch! You bumped into a wall! Consider yourself lucky I didn't make you lose HP when it happens... Now look where you're going!" }"#,
+            ),
+            WorldError::DiffRoom => String::from(
+                r#"{ "type": "DIFFSALLE", "message": "Room mismatch! What happened? Did you try to hack the game?" }"#,
+            ),
+            WorldError::EntityNotFound(_) => {
+                String::from("Entity was not found in world. Maybe it died or was disconnected")
             }
             WorldError::Other(msg) => format!("{{ \"message\": \"{}\" }}", msg),
+        }
+    }
+
+    pub fn check_not_found(&self, player_guid: String) -> WorldError {
+        match self {
+            WorldError::EntityNotFound(guid) => {
+                if guid.clone() == player_guid {
+                    WorldError::Disappeared
+                } else {
+                    self.clone()
+                }
+            }
+            _ => self.clone(),
         }
     }
 }

@@ -154,7 +154,7 @@ impl Room {
     pub fn add_guid(&mut self, guid: String) -> Result<(), data_model::WorldError> {
         if self.guids.contains(&guid) {
             Err(data_model::WorldError::Other(String::from(
-                "Entity already present in this room",
+                "Entity is already present in this room!",
             )))
         } else {
             self.guids.push(guid);
@@ -237,9 +237,7 @@ impl World {
     pub fn get_entity(&mut self, guid: String) -> Result<&mut Entity, data_model::WorldError> {
         match self.entities.get_mut(&guid) {
             Some(entity) => Ok(entity),
-            None => Err(data_model::WorldError::Other(String::from(
-                "Entity not found in world",
-            ))),
+            None => Err(data_model::WorldError::EntityNotFound(guid)),
         }
     }
 
@@ -457,7 +455,7 @@ impl World {
             }
 
             if dead {
-                Err(data_model::WorldError::Dead)
+                Err(data_model::WorldError::Disappeared)
             } else {
                 Ok(data_model::Fight {
                     attacker: data_model::Fighter {

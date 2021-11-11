@@ -26,7 +26,8 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     for arg in args.iter().skip(1) {
         if arg.starts_with("gen=") {
             filename = arg[4..arg.len()].to_string();
-            data = fs::read_to_string(&filename).expect(&format!("{} {}", FILE_READ_ERROR, &filename));
+            data =
+                fs::read_to_string(&filename).expect(&format!("{} {}", FILE_READ_ERROR, &filename));
         } else {
             panic!("{} {}", ERROR_ARGUMENT_PARSE, arg);
         }

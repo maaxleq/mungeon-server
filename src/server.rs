@@ -23,7 +23,10 @@ fn look_room(
     guid: String,
 ) -> Result<Json<data_model::Room>, data_model::WorldError> {
     let mut world = world.lock().unwrap();
-    Ok(Json(world.look(guid)?))
+    match world.look(guid.clone()) {
+        Ok(res) => Ok(Json(res)),
+        Err(error) => Err(error.check_not_found(guid)),
+    }
 }
 
 #[post("/<guid>/deplacement", data = "<req_direction>")]
@@ -33,9 +36,10 @@ fn movement(
     req_direction: Json<data_model::ReqDirection>,
 ) -> Result<Json<data_model::Room>, data_model::WorldError> {
     let mut world = world.lock().unwrap();
-    Ok(Json(
-        world.r#move(guid, req_direction.into_inner().direction)?,
-    ))
+    match world.r#move(guid.clone(), req_direction.into_inner().direction) {
+        Ok(res) => Ok(Json(res)),
+        Err(error) => Err(error.check_not_found(guid)),
+    }
 }
 
 #[get("/<guid>/examiner/<guid_dest>")]
@@ -45,7 +49,10 @@ fn look_entity(
     guid_dest: String,
 ) -> Result<Json<data_model::Entity>, data_model::WorldError> {
     let mut world = world.lock().unwrap();
-    Ok(Json(world.look_entity(guid, guid_dest)?))
+    match world.look_entity(guid.clone(), guid_dest) {
+        Ok(res) => Ok(Json(res)),
+        Err(error) => Err(error.check_not_found(guid)),
+    }
 }
 
 #[post("/<guid>/taper/<guid_dest>")]
@@ -55,7 +62,10 @@ fn attack(
     guid_dest: String,
 ) -> Result<Json<data_model::Fight>, data_model::WorldError> {
     let mut world = world.lock().unwrap();
-    Ok(Json(world.attack(guid, guid_dest)?))
+    match world.attack(guid.clone(), guid_dest) {
+        Ok(res) => Ok(Json(res)),
+        Err(error) => Err(error.check_not_found(guid)),
+    }
 }
 
 fn spawn_afk_thread(world: SharedWorld) {
