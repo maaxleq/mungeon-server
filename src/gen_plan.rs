@@ -131,10 +131,13 @@ impl WorldPlan {
                 y: coords.1,
                 description: Some(format!(
                     "You are at coordinates ({},{}). This room has a difficulty of {}{}",
-                    coords.0, coords.1, difficulty_multiplier, match hp_regen {
+                    coords.0,
+                    coords.1,
+                    difficulty_multiplier,
+                    match hp_regen {
                         None => String::from(""),
                         Some(0) => String::from(""),
-                        Some(value) => format!(" and regenerates {} HP", value)
+                        Some(value) => format!(" and regenerates {} HP", value),
                     }
                 )),
                 monsters: Some(MonstersPlan::Random(
