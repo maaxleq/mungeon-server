@@ -29,7 +29,7 @@ pub struct Entity {
 
 impl Entity {
     fn random_monster(location: Coords) -> Entity {
-        let hp = fastrand::u32(50..200);
+        let hp = fastrand::u32(30..150);
 
         Entity {
             r#type: EntityType::Monster(String::from("A simple monster")),
@@ -91,8 +91,6 @@ pub struct Room {
     pub description: String,
     pub guids: Vec<String>,
     pub hp_regen: Option<u32>,
-    pub new_max_hp: Option<u32>,
-    pub new_dp: Option<u32>,
 }
 
 impl Room {
@@ -127,8 +125,6 @@ impl Room {
                 description: description,
                 guids: guids,
                 hp_regen: room_plan.hp_regen,
-                new_max_hp: room_plan.new_max_hp,
-                new_dp: room_plan.new_dp,
             },
             entities,
         )
@@ -165,8 +161,8 @@ impl Room {
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Coords {
-    x: usize,
-    y: usize,
+    x: isize,
+    y: isize,
 }
 
 impl Coords {
@@ -217,7 +213,7 @@ impl World {
         }
     }
 
-    pub fn generate(world_plan: gen_plan::WorldPlan) -> World {
+    pub fn generate(world_plan: &gen_plan::WorldPlan) -> World {
         let mut world = World::new();
 
         for room_plan in world_plan.rooms.iter() {
