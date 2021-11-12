@@ -33,7 +33,14 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             data =
                 fs::read_to_string(&filename).expect(&format!("{} {}", FILE_READ_ERROR, &filename));
         } else if arg.starts_with("seed=") {
-            seed = arg[5..arg.len()].to_string();
+            let value = arg[5..arg.len()].to_string();
+            if value == "random" {
+                for _ in 0..50 {
+                    seed.push(fastrand::digit(16));
+                }
+            } else {
+                seed = value;
+            }
         } else if arg == "--dump" {
             dump = true;
         } else {
