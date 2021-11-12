@@ -124,18 +124,23 @@ impl WorldPlan {
             coords_list.push(coords.clone());
             let difficulty_multiplier =
                 WorldPlan::get_difficulty_multiplier(room_count.clone(), coords.clone());
+            let hp_regen = Some(seeder.seed_u32_bounded(0, 1) as u32 * difficulty_multiplier);
 
             world_plan.rooms.push(RoomPlan {
                 x: coords.0,
                 y: coords.1,
                 description: Some(format!(
-                    "You are at coordinates ({},{}). This room has a difficulty of {}",
-                    coords.0, coords.1, difficulty_multiplier
+                    "You are at coordinates ({},{}). This room has a difficulty of {}{}",
+                    coords.0, coords.1, difficulty_multiplier, match hp_regen {
+                        None => String::from(""),
+                        Some(0) => String::from(""),
+                        Some(value) => format!(" and regenerates {} HP", value)
+                    }
                 )),
                 monsters: Some(MonstersPlan::Random(
                     seeder.seed_u32_bounded(1, 3) as usize * difficulty_multiplier as usize,
                 )),
-                hp_regen: Some(seeder.seed_u32_bounded(0, 1) as u32 * difficulty_multiplier),
+                hp_regen: hp_regen,
             });
 
             println!("Generated room {}/{}", i + 1, room_count);

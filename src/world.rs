@@ -367,6 +367,14 @@ impl World {
         let guids = next_room.guids.clone();
         let cloned_guids = guids.clone();
         let description = next_room.description.clone();
+        let hp_regen = next_room.hp_regen.clone();
+        let hp = self.get_entity(guid.clone())?.hp.clone();
+        let max_hp = self.get_entity(guid.clone())?.max_hp.clone();
+        let new_hp = match hp_regen {
+            Some(value) => std::cmp::min(hp + value, max_hp),
+            None => hp.clone(),
+        };
+        self.get_entity(guid.clone())?.hp = new_hp;
         self.get_entity(guid.clone())?.location = new_coords.clone();
 
         Ok(data_model::Room {
