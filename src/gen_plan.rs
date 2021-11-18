@@ -102,51 +102,64 @@ impl WorldPlan {
 
         let mut world_plan = WorldPlan::new();
 
-        let room_count = seeder.seed_u32_bounded(150, 1000);
+        let corridor_count = seeder.seed_u32_bounded(150, 600);
         let mut coords_list: Vec<(isize, isize)> = vec![(0, 0)];
+
+        let mut direction = 0;
 
         world_plan.rooms.push(RoomPlan {
             x: 0,
             y: 0,
             description: Some(format!(
-                "Welcome! This is the spawn room. There are {} other {} to explore",
-                room_count - 1,
-                if room_count - 1 > 1 { "rooms" } else { "room" },
+                "Welcome! This is the spawn room. There are {} corridors {} to explore",
+                corridor_count - 1,
+                if corridor_count - 1 > 1 {
+                    "corridors"
+                } else {
+                    "corridor"
+                },
             )),
             monsters: None,
             hp_regen: None,
         });
 
-        println!("Generated room 1/{} (spawn)", room_count);
+        for i in 0..corridor_count {
+            let index = seeder.seed_u32_bounded(0, (coords_list.len() - 1) as u32) as usize;
+            let corridor_length = seeder.seed_u32_bounded(50, 150) as usize;
+            direction = (direction + 1) % 4;
+            let vector_function =
+                WorldPlan::get_vector_function(direction);
+            let mut coords = coords_list[index];
 
-        for i in 1..room_count {
-            let coords = WorldPlan::get_coords_for_new_room(&coords_list, &mut seeder);
-            coords_list.push(coords.clone());
-            let difficulty_multiplier =
-                WorldPlan::get_difficulty_multiplier(room_count.clone(), coords.clone());
-            let hp_regen = Some(seeder.seed_u32_bounded(0, 1) as u32 * difficulty_multiplier);
+            for _ in 0..corridor_length {
+                coords = vector_function(coords);
+                coords_list.push(coords.clone());
+                let difficulty_multiplier =
+                    WorldPlan::get_difficulty_multiplier(corridor_count.clone() * 30, coords.clone());
+                let hp_regen = Some(seeder.seed_u32_bounded(0, 1) as u32 * difficulty_multiplier);
 
-            world_plan.rooms.push(RoomPlan {
-                x: coords.0,
-                y: coords.1,
-                description: Some(format!(
-                    "You are at coordinates ({},{}). This room has a difficulty of {}{}",
-                    coords.0,
-                    coords.1,
-                    difficulty_multiplier,
-                    match hp_regen {
-                        None => String::from(""),
-                        Some(0) => String::from(""),
-                        Some(value) => format!(" and regenerates {} HP", value),
-                    }
-                )),
-                monsters: Some(MonstersPlan::Random(
-                    seeder.seed_u32_bounded(1, 3) as usize * difficulty_multiplier as usize,
-                )),
-                hp_regen: hp_regen,
-            });
+                world_plan.rooms.push(RoomPlan {
+                    x: coords.0,
+                    y: coords.1,
+                    description: Some(format!(
+                        "You are at coordinates ({},{}). This room has a difficulty of {}{}",
+                        coords.0,
+                        coords.1,
+                        difficulty_multiplier,
+                        match hp_regen {
+                            None => String::from(""),
+                            Some(0) => String::from(""),
+                            Some(value) => format!(" and regenerates {} HP", value),
+                        }
+                    )),
+                    monsters: Some(MonstersPlan::Random(
+                        seeder.seed_u32_bounded(1, 3) as usize * difficulty_multiplier as usize,
+                    )),
+                    hp_regen: hp_regen,
+                });
+            }
 
-            println!("Generated room {}/{}", i + 1, room_count);
+            println!("Generated corridor {}/{} (spawn)", i + 1, corridor_count);
         }
 
         println!("Finished generating map");
@@ -154,48 +167,19 @@ impl WorldPlan {
         world_plan
     }
 
+    fn get_vector_function(direction: u32) -> fn((isize, isize)) -> (isize, isize) {
+        match direction % 4 {
+            0 => (|coords: (isize, isize)| (coords.0, coords.1 + 1)),
+            1 => (|coords: (isize, isize)| (coords.0, coords.1 - 1)),
+            2 => (|coords: (isize, isize)| (coords.0 - 1, coords.1)),
+            _ => (|coords: (isize, isize)| (coords.0 + 1, coords.1)),
+        }
+    }
+
     fn get_difficulty_multiplier(room_count: u32, coords: (isize, isize)) -> u32 {
         let distance_from_spawn = ((coords.0.pow(2) + coords.1.pow(2)) as f32).sqrt();
         let world_radius = (room_count as f32 / std::f32::consts::PI).sqrt();
 
         (distance_from_spawn / world_radius * 8f32).ceil() as u32
-    }
-
-    fn get_coords_from_seed(coords: (isize, isize), seed: u32) -> (isize, isize) {
-        match seed % 4 {
-            0 => (coords.0, coords.1 + 1),
-            1 => (coords.0, coords.1 - 1),
-            2 => (coords.0 - 1, coords.1),
-            _ => (coords.0 + 1, coords.1),
-        }
-    }
-
-    fn get_coords_for_new_room(
-        coords_list: &Vec<(isize, isize)>,
-        seeder: &mut seed::Seeder,
-    ) -> (isize, isize) {
-        let mut found = false;
-        let mut res_coords = (0, 0);
-        let mut index = seeder.seed_u32_bounded(0, (coords_list.len() - 1) as u32) as usize;
-
-        while !found {
-            let coords = coords_list[index];
-            let direction = seeder.seed_u32_bounded(1, 4);
-            let mut iteration = 1;
-            let mut new_coords = WorldPlan::get_coords_from_seed(coords, direction);
-            while coords_list.contains(&new_coords) && iteration < 4 {
-                new_coords = WorldPlan::get_coords_from_seed(coords, direction + iteration);
-                iteration += 1;
-            }
-            found = !coords_list.contains(&new_coords);
-
-            if found {
-                res_coords = new_coords;
-            } else {
-                index = (index + 1) % coords_list.len();
-            }
-        }
-
-        res_coords
     }
 }
