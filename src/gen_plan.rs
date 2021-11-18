@@ -115,6 +115,8 @@ impl WorldPlan {
             hp_regen: None,
         });
 
+        println!("Generated spawn");
+
         for i in 0..corridor_count {
             let index = seeder.seed_u32_bounded(0, (coords_list.len() - 1) as u32) as usize;
             let corridor_length = seeder.seed_u32_bounded(50, 150) as usize;
@@ -155,7 +157,7 @@ impl WorldPlan {
                 }
             }
 
-            println!("Generated corridor {}/{} (spawn)", i + 1, corridor_count);
+            println!("Generated corridor {}/{}", i + 1, corridor_count);
         }
 
         let room_count = world_plan.rooms.len();
