@@ -110,15 +110,7 @@ impl WorldPlan {
         world_plan.rooms.push(RoomPlan {
             x: 0,
             y: 0,
-            description: Some(format!(
-                "Welcome! This is the spawn room. There are {} corridors {} to explore",
-                corridor_count - 1,
-                if corridor_count - 1 > 1 {
-                    "corridors"
-                } else {
-                    "corridor"
-                },
-            )),
+            description: None,
             monsters: None,
             hp_regen: None,
         });
@@ -127,40 +119,52 @@ impl WorldPlan {
             let index = seeder.seed_u32_bounded(0, (coords_list.len() - 1) as u32) as usize;
             let corridor_length = seeder.seed_u32_bounded(50, 150) as usize;
             direction = (direction + 1) % 4;
-            let vector_function =
-                WorldPlan::get_vector_function(direction);
+            let vector_function = WorldPlan::get_vector_function(direction);
             let mut coords = coords_list[index];
 
             for _ in 0..corridor_length {
                 coords = vector_function(coords);
                 coords_list.push(coords.clone());
-                let difficulty_multiplier =
-                    WorldPlan::get_difficulty_multiplier(corridor_count.clone() * 30, coords.clone());
-                let hp_regen = Some(seeder.seed_u32_bounded(0, 1) as u32 * difficulty_multiplier);
+                if coords.0 != 0 || coords.1 != 0 {
+                    let difficulty_multiplier = WorldPlan::get_difficulty_multiplier(
+                        corridor_count.clone() * 30,
+                        coords.clone(),
+                    );
+                    let hp_regen =
+                        Some(seeder.seed_u32_bounded(0, 1) as u32 * difficulty_multiplier);
 
-                world_plan.rooms.push(RoomPlan {
-                    x: coords.0,
-                    y: coords.1,
-                    description: Some(format!(
-                        "You are at coordinates ({},{}). This room has a difficulty of {}{}",
-                        coords.0,
-                        coords.1,
-                        difficulty_multiplier,
-                        match hp_regen {
-                            None => String::from(""),
-                            Some(0) => String::from(""),
-                            Some(value) => format!(" and regenerates {} HP", value),
-                        }
-                    )),
-                    monsters: Some(MonstersPlan::Random(
-                        seeder.seed_u32_bounded(1, 3) as usize * difficulty_multiplier as usize,
-                    )),
-                    hp_regen: hp_regen,
-                });
+                    world_plan.rooms.push(RoomPlan {
+                        x: coords.0,
+                        y: coords.1,
+                        description: Some(format!(
+                            "You are at coordinates ({},{}). This room has a difficulty of {}{}",
+                            coords.0,
+                            coords.1,
+                            difficulty_multiplier,
+                            match hp_regen {
+                                None => String::from(""),
+                                Some(0) => String::from(""),
+                                Some(value) => format!(" and regenerates {} HP", value),
+                            }
+                        )),
+                        monsters: Some(MonstersPlan::Random(
+                            seeder.seed_u32_bounded(1, 3) as usize * difficulty_multiplier as usize,
+                        )),
+                        hp_regen: hp_regen,
+                    });
+                }
             }
 
             println!("Generated corridor {}/{} (spawn)", i + 1, corridor_count);
         }
+
+        let room_count = world_plan.rooms.len();
+
+        world_plan.rooms[0].description = Some(format!(
+            "Welcome! This is the spawn room. There are {} other {} to explore",
+            room_count - 1,
+            if room_count - 1 > 1 { "rooms" } else { "room" },
+        ));
 
         println!("Finished generating map");
 
