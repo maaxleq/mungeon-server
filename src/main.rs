@@ -13,11 +13,15 @@ mod world;
 use std::env;
 use std::error;
 use std::fs;
+use std::io::{self, BufRead};
+use std::str::FromStr;
 
 static ERROR_ARGUMENT_PARSE: &str = "Could not parse argument";
 static NO_GEN_ERROR: &str = "No input file or seed provided";
 static FILE_READ_ERROR: &str = "Could not read file";
 static GEN_PARSE_ERROR: &str = "Error while parsing generation plan";
+
+static BAN_LIST_PATH: &str = "ban_list.txt";
 
 fn main() -> Result<(), Box<dyn error::Error>> {
     let args: Vec<String> = env::args().collect();
@@ -67,7 +71,23 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     if dump {
         dump::dump_world(&plan);
     } else {
-        server::launch(world);
+        let mut banned_ips = Vec::new();
+
+        match std::fs::File::open(std::path::Path::new(BAN_LIST_PATH)) {
+            Ok(file) => {
+                for ip_str in io::BufReader::new(file).lines() {
+                    match std::net::IpAddr::from_str(ip_str?.as_str()) {
+                        Ok(ip_addr) => {
+                            banned_ips.push(ip_addr);
+                        }
+                        Err(_) => (),
+                    }
+                }
+            }
+            Err(_) => (),
+        }
+
+        server::launch(world, banned_ips)?;
     }
 
     Ok(())
