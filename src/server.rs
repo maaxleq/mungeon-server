@@ -98,13 +98,9 @@ fn spawn_afk_thread(world: SharedWorld) {
     let check_rate = time::Duration::from_secs(5);
 
     thread::spawn(move || {
-        let mut last_tick = time::Instant::now();
-
         loop {
-            if last_tick.elapsed() >= check_rate {
-                world.lock().unwrap().disconnect_afk_players().unwrap();
-                last_tick = time::Instant::now();
-            }
+            thread::sleep(check_rate);
+            world.lock().unwrap().disconnect_afk_players().unwrap();
         }
     });
 }
